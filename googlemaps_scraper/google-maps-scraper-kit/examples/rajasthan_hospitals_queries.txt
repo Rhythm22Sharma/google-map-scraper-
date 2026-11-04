@@ -1,0 +1,56 @@
+# Batch queries for Hospitals & Healthcare in Rajasthan (Target: ~2,000+ leads)
+# Each query retrieves ~60-100 listings on Google Maps.
+# Across 32 queries, this yields ~2,500 raw entries -> ~2,000 unique deduplicated hospital leads.
+
+# --- Jaipur (Capital & Mega Medical Hub) ---
+private hospitals in Jaipur Rajasthan
+multispeciality hospitals in Jaipur Rajasthan
+super speciality hospitals in Jaipur Rajasthan
+eye hospitals in Jaipur Rajasthan
+orthopedic hospitals in Jaipur Rajasthan
+maternity hospitals in Jaipur Rajasthan
+nursing homes in Jaipur Rajasthan
+hospitals in Mansarovar Jaipur
+hospitals in Malviya Nagar Jaipur
+hospitals in Vaishali Nagar Jaipur
+
+# --- Jodhpur (Second Largest Hub, AIIMS & Specialty Centers) ---
+private hospitals in Jodhpur Rajasthan
+multispeciality hospitals in Jodhpur Rajasthan
+nursing homes and clinics in Jodhpur Rajasthan
+eye and orthopedic hospitals in Jodhpur Rajasthan
+
+# --- Kota (Major Southern Center) ---
+private hospitals in Kota Rajasthan
+multispeciality hospitals in Kota Rajasthan
+nursing homes and hospitals in Kota Rajasthan
+
+# --- Udaipur (Mewar Regional Hub) ---
+private hospitals in Udaipur Rajasthan
+multispeciality hospitals in Udaipur Rajasthan
+maternity and eye hospitals in Udaipur Rajasthan
+
+# --- Bikaner (North-West Hub) ---
+private hospitals in Bikaner Rajasthan
+multispeciality hospitals in Bikaner Rajasthan
+
+# --- Ajmer & Pushkar ---
+private hospitals in Ajmer Rajasthan
+multispeciality hospitals in Ajmer Rajasthan
+
+# --- Bhilwara (Textile Hub & High Private Clinics) ---
+private hospitals in Bhilwara Rajasthan
+multispeciality hospitals in Bhilwara Rajasthan
+
+# --- Alwar (NCR Border Corridor) ---
+private hospitals in Alwar Rajasthan
+multispeciality hospitals in Alwar Rajasthan
+
+# --- Sikar (Shekhawati Hub) ---
+private hospitals in Sikar Rajasthan
+hospitals and nursing homes in Sikar Rajasthan
+
+# --- Sri Ganganagar, Bharatpur & Pali ---
+hospitals in Sri Ganganagar Rajasthan
+private hospitals in Bharatpur Rajasthan
+multispeciality hospitals in Pali Rajasthan

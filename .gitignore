@@ -1,0 +1,29 @@
+# Secrets & Credentials (Never commit)
+.env
+*.env
+**/.env
+.env.*
+
+# Scrape data output (protect private leads)
+*.csv
+**/*.csv
+*.xlsx
+**/*.xlsx
+results-*.json
+rajasthan_schools_database*.json
+
+# Python cache & virtual environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

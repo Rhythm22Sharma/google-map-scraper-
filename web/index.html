@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MapLead Scraper Kaynetics - Google Maps Lead Pipeline</title>
+  <meta name="description" content="End-to-end Google Maps lead generation and MongoDB pipeline with project categorization and enrichment.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="logo-title">MapLead Scraper <span class="gradient-text">Kaynetics</span></h1>
+          <p class="logo-subtitle">Google Maps Lead Generation & MongoDB Pipeline</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- System Status Pills -->
+        <div class="status-indicators">
+          <div id="ws-status-pill" class="status-pill status-loading" title="WebSocket real-time streaming (ws://localhost:5051)">
+            <span class="status-dot"></span>
+            <span class="status-label">Live Stream: <strong id="ws-status-text">Connecting...</strong></span>
+          </div>
+
+          <div id="mongo-status-pill" class="status-pill status-loading" title="Checking MongoDB connection...">
+            <span class="status-dot"></span>
+            <span class="status-label">MongoDB: <strong id="mongo-status-text">Connecting...</strong></span>
+          </div>
+
+          <div id="scraper-status-pill" class="status-pill status-loading" title="Checking Scraper container...">
+            <span class="status-dot"></span>
+            <span class="status-label">Scraper Engine: <strong id="scraper-status-text">Checking...</strong></span>
+          </div>
+
+          <button id="refresh-status-btn" class="icon-btn" title="Refresh Connections">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <nav class="nav-tabs" aria-label="Main tabs">
+      <button class="nav-tab active" id="tab-btn-scrape" data-target="view-scrape">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span>Launch Scrape</span>
+      </button>
+
+      <button class="nav-tab" id="tab-btn-leads" data-target="view-leads">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          <line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+        <span>MongoDB Leads</span>
+        <span class="counter-badge" id="header-total-leads">0</span>
+      </button>
+
+      <button class="nav-tab" id="tab-btn-import" data-target="view-import">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>CSV Importer</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Views -->
+    <main class="main-content">
+      <!-- VIEW 1: Launch Scraper -->
+      <section id="view-scrape" class="view-panel active">
+        <div class="scrape-grid">
+          <!-- Left: Scrape Parameters Form -->
+          <div class="glass-card form-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="card-step-badge">1</span>
+                <div>
+                  <h2 class="card-title">Scraper Parameters</h2>
+                  <p class="card-desc">Configure keyword, target location, and user project tag.</p>
+                </div>
+              </div>
+            </div>
+
+            <form id="scrape-form" class="scrape-form">
+              <!-- Project Name (Crucial Field) -->
+              <div class="form-group highlighted-group">
+                <label for="input-project" class="form-label">
+                  Project Name
+                  <span class="label-badge primary-badge">Required • Tags all leads in DB</span>
+                </label>
+                <div class="input-with-icon">
+                  <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <input
+                    type="text"
+                    id="input-project"
+                    class="form-control highlighted-input"
+                    placeholder="e.g. scrape for taltra, dubai clinics, realtors tx"
+                    value="scrape for taltra"
+                    required
+                  >
+                </div>
+                <span class="field-hint">All scraped leads will be saved in MongoDB tagged with this exact project name.</span>
+              </div>
+
+              <!-- Interactive Tag / Chip Multi-Search Keywords & Multi-Locations -->
+              <div class="form-row">
+                <!-- Keywords Tag Box -->
+                <div class="form-group">
+                  <div class="label-row-between">
+                    <label class="form-label">
+                      Search Titles / Keywords <span class="required">*</span>
+                    </label>
+                    <span class="count-pill" id="keywords-count-pill">0 keywords</span>
+                  </div>
+                  <div class="tag-box-wrapper" id="keyword-box-wrapper">
+                    <div class="tags-container" id="keywords-tags-list"></div>
+                    <div class="tag-input-row">
+                      <svg class="tag-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                      <input
+                        type="text"
+                        id="input-keyword-tag"
+                        class="tag-inner-input"
+                        placeholder="Type keyword & press Enter or comma..."
+                        autocomplete="off"
+                      >
+                      <button type="button" id="btn-add-keyword" class="tag-add-btn" title="Add Keyword">
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+                  <span class="field-hint">Add multiple titles. Press Enter, comma, or paste a list to create separate tags.</span>
+                  <!-- Quick preset suggestions -->
+                  <div class="quick-presets-row">
+                    <span class="preset-label">Quick Add:</span>
+                    <button type="button" class="preset-tag-btn" data-type="kw" data-val="recruitment agency">+ Recruitment Agency</button>
+                    <button type="button" class="preset-tag-btn" data-type="kw" data-val="staffing agency">+ Staffing Agency</button>
+                    <button type="button" class="preset-tag-btn" data-type="kw" data-val="headhunters">+ Headhunters</button>
+                    <button type="button" class="preset-tag-btn" data-type="kw" data-val="executive search">+ Executive Search</button>
+                  </div>
+                </div>
+
+                <!-- Locations Tag Box -->
+                <div class="form-group">
+                  <div class="label-row-between">
+                    <label class="form-label">
+                      Target Cities / Locations
+                    </label>
+                    <span class="count-pill" id="cities-count-pill">0 locations</span>
+                  </div>
+                  <div class="tag-box-wrapper" id="city-box-wrapper">
+                    <div class="tags-container" id="cities-tags-list"></div>
+                    <div class="tag-input-row">
+                      <svg class="tag-row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      <input
+                        type="text"
+                        id="input-city-tag"
+                        class="tag-inner-input"
+                        placeholder="Type city & press Enter or comma..."
+                        autocomplete="off"
+                      >
+                      <button type="button" id="btn-add-city" class="tag-add-btn" title="Add Location">
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+                  <span class="field-hint">Add multiple locations. E.g. Udaipur, Jaipur, Dubai. Leave empty for global search.</span>
+                  <!-- Quick preset suggestions -->
+                  <div class="quick-presets-row">
+                    <span class="preset-label">Quick Add:</span>
+                    <button type="button" class="preset-tag-btn" data-type="city" data-val="Udaipur">+ Udaipur</button>
+                    <button type="button" class="preset-tag-btn" data-type="city" data-val="Jaipur">+ Jaipur</button>
+                    <button type="button" class="preset-tag-btn" data-type="city" data-val="Dubai, UAE">+ Dubai</button>
+                    <button type="button" class="preset-tag-btn" data-type="city" data-val="New York">+ New York</button>
+                    <button type="button" class="preset-tag-btn" data-type="city" data-val="London">+ London</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive Queue Calculation Indicator -->
+              <div id="queue-calc-badge" class="queue-badge">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span id="queue-calc-text">Batch Queue: 0 queries planned</span>
+              </div>
+
+              <!-- Scrape Depth Slider -->
+              <div class="form-group">
+                <div class="slider-label-row">
+                  <label for="input-depth" class="form-label">Scraping Depth per Query</label>
+                  <span class="slider-value-display">
+                    <strong id="depth-val">5</strong> pages (~<span id="depth-est">100</span> potential listings per query)
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  id="input-depth"
+                  class="range-slider"
+                  min="1"
+                  max="15"
+                  value="5"
+                  step="1"
+                >
+                <div class="slider-ticks">
+                  <span>1 (20)</span>
+                  <span>5 (100)</span>
+                  <span>10 (200)</span>
+                  <span>15 (300)</span>
+                </div>
+              </div>
+
+              <!-- Enrichment & Speed Feature Toggles -->
+              <div class="feature-toggles-section">
+                <span class="toggles-header">Automation & Lead Enrichment Options</span>
+                <div class="toggles-grid">
+                  <label class="toggle-card highlighted-toggle">
+                    <input type="checkbox" id="toggle-fastmode" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Fast Mode & Early Auto-Stop <span class="label-badge primary-badge">Recommended</span></span>
+                      <span class="toggle-desc">Stops as soon as results end (e.g. 40 leads instead of 100) & moves to next query instantly without hanging</span>
+                    </div>
+                  </label>
+
+                  <label class="toggle-card">
+                    <input type="checkbox" id="toggle-emails" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Extract Business Emails</span>
+                      <span class="toggle-desc">Fast concurrent email extraction from websites</span>
+                    </div>
+                  </label>
+
+                  <label class="toggle-card">
+                    <input type="checkbox" id="toggle-socials" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Enrich Social Media</span>
+                      <span class="toggle-desc">Finds Instagram, Facebook, LinkedIn</span>
+                    </div>
+                  </label>
+
+                  <label class="toggle-card">
+                    <input type="checkbox" id="toggle-summary" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Website Summaries</span>
+                      <span class="toggle-desc">Company description & business overview</span>
+                    </div>
+                  </label>
+
+                  <label class="toggle-card">
+                    <input type="checkbox" id="toggle-people" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Verified Decision Makers <span class="label-badge primary-badge">Founder / CEO / HR</span></span>
+                      <span class="toggle-desc">DuckDuckGo intelligence & on-site team crawler (Zero-Guessed Emails)</span>
+                    </div>
+                  </label>
+
+                  <label class="toggle-card">
+                    <input type="checkbox" id="toggle-csv" checked>
+                    <span class="toggle-switch"></span>
+                    <div class="toggle-info">
+                      <span class="toggle-title">Offline Master CSV Backup</span>
+                      <span class="toggle-desc">Appends all leads to master project CSV</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Collapsible MongoDB destination settings -->
+              <details class="collapsible-section">
+                <summary class="collapsible-summary">
+                  <span>MongoDB Destination Settings</span>
+                  <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </summary>
+                <div class="collapsible-content">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="input-db" class="form-label">Database Name</label>
+                      <input type="text" id="input-db" class="form-control" value="scraper">
+                    </div>
+                    <div class="form-group">
+                      <label for="input-collection" class="form-label">Collection</label>
+                      <input type="text" id="input-collection" class="form-control" value="leads">
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Submit button -->
+              <div class="form-actions">
+                <button type="submit" id="start-scrape-btn" class="btn btn-primary btn-lg">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <span>Launch Scraping Pipeline</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Right: Live Pipeline Execution Console -->
+          <div class="glass-card monitor-card">
+            <div class="card-header monitor-header">
+              <div class="card-title-group">
+                <span class="card-step-badge">2</span>
+                <div>
+                  <h2 class="card-title">Live Pipeline Monitor</h2>
+                  <p class="card-desc" id="monitor-subtitle">Awaiting scrape task...</p>
+                </div>
+              </div>
+              <div class="monitor-header-actions">
+                <button type="button" id="btn-skip-query" class="btn btn-sm btn-outline hidden" title="Skip current query and advance to next">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 4 15 12 5 20 5 4"/>
+                    <line x1="19" y1="5" x2="19" y2="19"/>
+                  </svg>
+                  <span>Skip Query</span>
+                </button>
+                <button type="button" id="btn-stop-scrape" class="btn btn-sm btn-danger hidden" title="Stop scraping and keep all leads collected so far">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                  </svg>
+                  <span>Stop & Save</span>
+                </button>
+                <div id="job-status-badge" class="badge badge-idle">Ready</div>
+              </div>
+            </div>
+
+            <!-- Visual Pipeline Stepper -->
+            <div class="pipeline-stepper" id="pipeline-stepper">
+              <div class="step-item" id="step-geocode">
+                <div class="step-circle">1</div>
+                <span class="step-name">Geocode</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item" id="step-engine">
+                <div class="step-circle">2</div>
+                <span class="step-name">Scraper Engine</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item" id="step-extract">
+                <div class="step-circle">3</div>
+                <span class="step-name">Maps Data</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item" id="step-enrich">
+                <div class="step-circle">4</div>
+                <span class="step-name">Enrichment</span>
+              </div>
+              <div class="step-line"></div>
+              <div class="step-item" id="step-mongo">
+                <div class="step-circle">5</div>
+                <span class="step-name">MongoDB Sync</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-wrapper">
+              <div class="progress-info">
+                <span id="progress-step-text">Pipeline Idle</span>
+                <span id="progress-percent-text">0%</span>
+              </div>
+              <div class="progress-track">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Batch Progress Information Strip -->
+            <div id="batch-status-bar" class="batch-status-bar hidden">
+              <div class="batch-col">
+                <span class="batch-lbl">Active Search:</span>
+                <span class="batch-val" id="batch-current-query">-</span>
+              </div>
+              <div class="batch-col">
+                <span class="batch-lbl">Batch Queue:</span>
+                <span class="batch-val" id="batch-queue-progress">0 of 0 queries</span>
+              </div>
+              <div class="batch-col">
+                <span class="batch-lbl">Cumulative Leads:</span>
+                <span class="batch-val highlight" id="batch-cumulative-leads">0</span>
+              </div>
+            </div>
+
+            <!-- Live Console Terminal -->
+            <div class="terminal-window">
+              <div class="terminal-bar">
+                <span class="term-dot red"></span>
+                <span class="term-dot yellow"></span>
+                <span class="term-dot green"></span>
+                <span class="term-title">execution.log</span>
+                <button id="clear-logs-btn" class="term-action" title="Clear Logs">Clear</button>
+              </div>
+              <div id="terminal-body" class="terminal-body">
+                <div class="term-line info">
+                  <span class="term-time">[System]</span> Ready to start. Enter search parameters on the left and click 'Launch Scraping Pipeline'.
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Leads Streaming Feed Panel (WebSocket Micro-Batches) -->
+            <div id="live-lead-feed-card" class="live-lead-feed-card hidden">
+              <div class="feed-header">
+                <div class="feed-title-group">
+                  <span class="live-dot-pulse"></span>
+                  <h3 class="feed-title">Real-Time Lead Stream</h3>
+                  <span class="feed-badge" id="live-feed-badge">5 leads / batch</span>
+                </div>
+                <div class="feed-stats-pills">
+                  <span class="feed-stat-item"><strong id="live-feed-total">0</strong> total unique</span>
+                  <span class="feed-stat-item text-success">+<strong id="live-feed-new">0</strong> new</span>
+                  <span class="feed-stat-item text-warning"><strong id="live-feed-merged">0</strong> merged</span>
+                </div>
+              </div>
+              <div class="live-table-scroll">
+                <table class="leads-table live-feed-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 44px;">#</th>
+                      <th>Business Title</th>
+                      <th>Contact Info</th>
+                      <th>Category / Location</th>
+                      <th>Search Source</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="live-feed-tbody">
+                    <!-- Streaming leads appended here in micro-batches -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Job Result Summary Card (Shown when completed) -->
+            <div id="job-summary-card" class="job-summary-card hidden">
+              <div class="summary-header">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>Scrape Completed Successfully!</span>
+              </div>
+              <div class="summary-metrics-grid">
+                <div class="metric-box">
+                  <span class="metric-num" id="metric-total-scraped">0</span>
+                  <span class="metric-txt">Total Scraped</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-num text-success" id="metric-new-inserted">0</span>
+                  <span class="metric-txt">New Inserted</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-num text-warning" id="metric-updated">0</span>
+                  <span class="metric-txt">Updated/Merged</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-num text-primary" id="metric-total-project">0</span>
+                  <span class="metric-txt">Total in Project</span>
+                </div>
+              </div>
+              <div class="summary-actions">
+                <button id="btn-jump-to-leads" class="btn btn-secondary">
+                  <span>View Leads in Database</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: MongoDB Leads Explorer -->
+      <section id="view-leads" class="view-panel">
+        <!-- Explorer Header & Controls -->
+        <div class="glass-card explorer-controls-card">
+          <div class="explorer-top-row">
+            <!-- Project Picker -->
+            <div class="project-selector-wrapper">
+              <label for="project-select" class="form-label">Active Project</label>
+              <div class="select-with-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <select id="project-select" class="form-control select-control">
+                  <option value="">Loading projects...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Stats Metrics Ribbon for Selected Project -->
+            <div class="project-stats-ribbon">
+              <div class="stat-pill">
+                <span class="stat-icon-wrapper blue">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong id="stat-total-leads">0</strong>
+                  <span class="stat-desc">Total Leads</span>
+                </div>
+              </div>
+
+              <div class="stat-pill">
+                <span class="stat-icon-wrapper green">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong id="stat-emails-count">0</strong>
+                  <span class="stat-desc">With Email (<span id="stat-emails-pct">0%</span>)</span>
+                </div>
+              </div>
+
+              <div class="stat-pill">
+                <span class="stat-icon-wrapper amber">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong id="stat-phones-count">0</strong>
+                  <span class="stat-desc">With Phone</span>
+                </div>
+              </div>
+
+              <div class="stat-pill">
+                <span class="stat-icon-wrapper violet">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                  </svg>
+                </span>
+                <div>
+                  <strong id="stat-socials-count">0</strong>
+                  <span class="stat-desc">With Socials</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Export to CSV button -->
+            <div class="explorer-action-buttons">
+              <button id="export-csv-btn" class="btn btn-secondary" title="Download clean CSV of current project">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Filter Bar -->
+          <div class="filter-bar">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                type="text"
+                id="lead-search-input"
+                class="form-control search-control"
+                placeholder="Search business name, category, city, phone, email..."
+              >
+              <button id="clear-search-btn" class="clear-search-btn hidden">✕</button>
+            </div>
+
+            <div class="filter-pills" id="filter-pills">
+              <button class="filter-pill active" data-filter="all">All</button>
+              <button class="filter-pill" data-filter="has_email">Has Email</button>
+              <button class="filter-pill" data-filter="has_socials">Has Socials</button>
+              <button class="filter-pill" data-filter="high_rating">★ 4.0+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leads Data Table Card -->
+        <div class="glass-card table-card">
+          <div class="table-container">
+            <table class="leads-table" id="leads-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Business / Title</th>
+                  <th>Project</th>
+                  <th>Scraped Time</th>
+                  <th>Rating</th>
+                  <th>Category</th>
+                  <th>Contact Info</th>
+                  <th>Social Media</th>
+                  <th>Location</th>
+                  <th style="text-align: right;">Details</th>
+                </tr>
+              </thead>
+              <tbody id="leads-tbody">
+                <tr>
+                  <td colspan="10" class="empty-state">
+                    <div class="empty-state-inner">
+                      <div class="spinner"></div>
+                      <span>Loading leads from MongoDB Atlas...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Footer Pagination -->
+          <div class="table-footer">
+            <div class="table-info">
+              Showing <span id="page-start">0</span> - <span id="page-end">0</span> of <strong id="page-total">0</strong> leads
+            </div>
+            <div class="pagination-buttons">
+              <button id="prev-page-btn" class="btn btn-sm btn-secondary" disabled>Previous</button>
+              <span id="current-page-display" class="page-indicator">Page 1</span>
+              <button id="next-page-btn" class="btn btn-sm btn-secondary">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: CSV Importer -->
+      <section id="view-import" class="view-panel">
+        <div class="glass-card import-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-step-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </span>
+              <div>
+                <h2 class="card-title">Import Existing CSV Leads into MongoDB</h2>
+                <p class="card-desc">Assign any CSV file to a custom project name with automatic deduplication.</p>
+              </div>
+            </div>
+          </div>
+
+          <form id="import-csv-form" class="import-form">
+            <div class="form-row">
+              <div class="form-group highlighted-group">
+                <label for="import-project-name" class="form-label">
+                  Target Project Name <span class="required">*</span>
+                  <span class="label-badge primary-badge">Tags all imported rows</span>
+                </label>
+                <input
+                  type="text"
+                  id="import-project-name"
+                  class="form-control highlighted-input"
+                  placeholder="e.g. gcc enterprise leads"
+                  required
+                >
+              </div>
+
+              <div class="form-group">
+                <label for="import-file-select" class="form-label">
+                  Select CSV File on Server <span class="required">*</span>
+                </label>
+                <select id="import-file-select" class="form-control select-control" required>
+                  <option value="">Loading available CSV files...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="import-actions">
+              <button type="submit" id="btn-run-import" class="btn btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Import File into MongoDB</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Import Result Banner -->
+          <div id="import-result-banner" class="import-result-banner hidden"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Lead Details Modal -->
+    <div id="lead-modal" class="modal-overlay hidden">
+      <div class="glass-card modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="badge badge-project" id="modal-project-badge">Project</span>
+            <h3 class="modal-title" id="modal-lead-title">Lead Title</h3>
+          </div>
+          <button id="close-modal-btn" class="icon-btn modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-lead-body">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
